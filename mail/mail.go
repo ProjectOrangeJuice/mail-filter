@@ -22,6 +22,7 @@ func CheckInbox() {
 
 	// Connect to server
 	c, err := client.DialTLS("mail.harriso.co.uk:993", nil)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,7 +32,7 @@ func CheckInbox() {
 	defer c.Logout()
 
 	// Login
-	if err := c.Login("", ""); err != nil {
+	if err := c.Login(readAddress(), readPass()); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Logged in")
@@ -82,6 +83,7 @@ func CheckInbox() {
 }
 
 func shakeSpam(c *client.Client) {
+	c.SetDebug(os.Stdout)
 	fmt.Println("** shakin ** ")
 	// Select INBOX
 	mbox, err := c.Select("INBOX.possible spam", false)
@@ -97,33 +99,45 @@ func shakeSpam(c *client.Client) {
 	fmt.Printf("from %v, to %v\n", from, to)
 	seqset.AddRange(from, to)
 
-	messages := make(chan *imap.Message, 10)
-	done := make(chan error, 1)
-	go func() {
-		done <- c.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
-	}()
+	messages := make(chan *imap.Message, to)
+
+	err = c.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var toMove []uint32
 	for msg := range messages {
 		fmt.Printf("Reading message %s\n", msg.Envelope.Subject)
-		moveMSG := false
+
 		for _, f := range msg.Envelope.From {
 			if filter.IsSafe(f.HostName) {
-				moveMSG = true
+				toMove = append(toMove, msg.SeqNum)
 				break
 			}
 
 		}
-		if moveMSG {
-			fmt.Println("This email is safe to move!")
-			mover := move.NewClient(c)
-			msgV := new(imap.SeqSet)
-			msgV.AddNum(msg.SeqNum)
-			mover.Move(msgV, "INBOX")
-		}
+
+		fmt.Println("Next message")
 	}
 
-	if err := <-done; err != nil {
-		log.Fatal(err)
+	fmt.Printf("These are to be moved.. %v\n", toMove)
+	if len(toMove) > 0 {
+		mover := move.NewClient(c)
+		msgV := new(imap.SeqSet)
+		for _, s := range toMove {
+			msgV.AddNum(s)
+		}
+		fmt.Printf("Nums - %+v\n", msgV)
+
+		err := mover.MoveWithFallback(msgV, "INBOX")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Moved :D")
 	}
+
+	fmt.Println("Shake done")
+
 }
 
 func saveLastUID() {

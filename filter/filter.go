@@ -17,7 +17,8 @@ func init() {
 func readSafeList() {
 	f, err := os.OpenFile("safe.txt", os.O_RDONLY, 0644)
 	if err != nil {
-		log.Fatalf("Failed to read domain list %s", err)
+		log.Printf("Failed to read domain list %s", err)
+		return
 	}
 	defer f.Close()
 
