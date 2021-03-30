@@ -1,0 +1,30 @@
+{{define "header"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mail filter</title>
+</head>
+
+{{end}}
+
+{{define "index"}}
+{{template "header" . }}
+
+<h1> Current whitelist </h1>
+
+{{range .}}
+            {{ . }}<br>
+{{end}}
+
+<form action="/add" method="GET">
+    <input name="host" type="text" />
+    <input type="submit" value="Add">
+</form>
+<br>
+<form action="/delete" method="GET">
+    <input name="host" type="text" />
+    <input type="submit" value="delete">
+</form>
+
+
+{{end}}
