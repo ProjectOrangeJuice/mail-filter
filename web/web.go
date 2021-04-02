@@ -13,6 +13,11 @@ import (
 
 var templates *template.Template
 
+type data struct {
+	Whitelist []string
+	Blacklist []string
+}
+
 func Start() {
 	var err error
 	templates, err = template.ParseGlob("web/src/*.html")
@@ -27,26 +32,56 @@ func Start() {
 	router.HandleFunc("/", indexPage)
 	router.HandleFunc("/add", addPage)
 	router.HandleFunc("/delete", deletePage)
+	router.HandleFunc("/addBlacklist", addBlacklistPage)
+	router.HandleFunc("/deleteBlacklist", deleteBlacklistPage)
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
 
 func indexPage(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Hosts: %v\n", filter.Hosts())
-	templates.ExecuteTemplate(w, "index", filter.Hosts())
+	i := data{
+		filter.Hosts(),
+		filter.Blacklist(),
+	}
+	fmt.Printf("Hosts: %v\n", i)
+	templates.ExecuteTemplate(w, "index", i)
 }
 
 func addPage(w http.ResponseWriter, r *http.Request) {
 	h := r.FormValue("host")
 	filter.Add(h)
-
-	fmt.Printf("Hosts: %v\n", filter.Hosts())
-	templates.ExecuteTemplate(w, "index", filter.Hosts())
+	i := data{
+		filter.Hosts(),
+		filter.Blacklist(),
+	}
+	templates.ExecuteTemplate(w, "index", i)
 }
 
 func deletePage(w http.ResponseWriter, r *http.Request) {
 	h := r.FormValue("host")
 	filter.Remove(h)
+	i := data{
+		filter.Hosts(),
+		filter.Blacklist(),
+	}
+	templates.ExecuteTemplate(w, "index", i)
+}
 
-	fmt.Printf("Hosts: %v\n", filter.Hosts())
-	templates.ExecuteTemplate(w, "index", filter.Hosts())
+func addBlacklistPage(w http.ResponseWriter, r *http.Request) {
+	h := r.FormValue("host")
+	filter.AddBlacklist(h)
+	i := data{
+		filter.Hosts(),
+		filter.Blacklist(),
+	}
+	templates.ExecuteTemplate(w, "index", i)
+}
+
+func deleteBlacklistPage(w http.ResponseWriter, r *http.Request) {
+	h := r.FormValue("host")
+	filter.RemoveBlacklist(h)
+	i := data{
+		filter.Hosts(),
+		filter.Blacklist(),
+	}
+	templates.ExecuteTemplate(w, "index", i)
 }

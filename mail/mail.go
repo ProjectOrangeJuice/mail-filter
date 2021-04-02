@@ -2,10 +2,7 @@ package mail
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"strconv"
 
 	"github.com/ProjectOrangeJuice/mail-filter/filter"
 	"github.com/emersion/go-imap"
@@ -13,11 +10,7 @@ import (
 	"github.com/emersion/go-imap/client"
 )
 
-var lastID uint32
-
 func CheckInbox() {
-	// restore last uid
-	readUID()
 	log.Println("Connecting to server...")
 
 	// Connect to server
@@ -43,14 +36,11 @@ func CheckInbox() {
 		log.Fatal(err)
 	}
 
-	from := lastID
-	if lastID == 0 {
-		from = uint32(1)
-	}
+	from := uint32(1)
 	to := mbox.Messages
 	if mbox.Messages > 50 { // only check the last 50 messages
 		// get last 50 messages
-		if mbox.Messages > 49 {
+		if mbox.Messages > 50 {
 			to = from + 50
 		}
 	}
@@ -65,25 +55,25 @@ func CheckInbox() {
 		done <- c.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
 	}()
 	for msg := range messages {
-		fmt.Printf("Reading message %s with id %v\n", msg.Envelope.Subject, msg.SeqNum)
 		// For each of the messages, take a look at the from and add it to the whitelist
 		for _, f := range msg.Envelope.From {
+			if filter.IsBlacklist(f.HostName) {
+				// Move to spam!
+
+			}
 			filter.Add(f.HostName)
 		}
-		fmt.Printf("setting last id as.. %v\n", msg.SeqNum)
-		lastID = msg.SeqNum
+
 	}
 
 	if err := <-done; err != nil {
 		log.Fatal(err)
 	}
-	saveLastUID()
 	shakeSpam(c)
 	log.Println("Done!")
 }
 
 func shakeSpam(c *client.Client) {
-	c.SetDebug(os.Stdout)
 	fmt.Println("** shakin ** ")
 	// Select INBOX
 	mbox, err := c.Select("INBOX.possible spam", false)
@@ -106,19 +96,21 @@ func shakeSpam(c *client.Client) {
 		log.Fatal(err)
 	}
 	var toMove []uint32
+	re := 0
 	for msg := range messages {
-		fmt.Printf("Reading message %s\n", msg.Envelope.Subject)
+		re++
+		fmt.Printf("Reading message %s ", msg.Envelope.Subject)
 
 		for _, f := range msg.Envelope.From {
+			fmt.Printf("with a host of %s, safe? %v\n", f.HostName, filter.IsSafe(f.HostName))
 			if filter.IsSafe(f.HostName) {
 				toMove = append(toMove, msg.SeqNum)
 				break
 			}
 
 		}
-
-		fmt.Println("Next message")
 	}
+	fmt.Printf("I was going to read %d but I actually read %d\n", to, re)
 
 	fmt.Printf("These are to be moved.. %v\n", toMove)
 	if len(toMove) > 0 {
@@ -138,31 +130,4 @@ func shakeSpam(c *client.Client) {
 
 	fmt.Println("Shake done")
 
-}
-
-func saveLastUID() {
-	fmt.Printf("saving %v\n", lastID)
-	f, err := os.OpenFile("last.txt", os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
-	if _, err := f.WriteString(fmt.Sprintf("%d", lastID)); err != nil {
-		log.Println(err)
-	}
-}
-
-func readUID() {
-	dat, err := ioutil.ReadFile("last.txt")
-	if err != nil {
-		log.Printf("Couldn't read last uid, %s", err)
-		return
-	}
-	last, err := strconv.ParseUint(string(dat), 10, 32)
-	if err != nil {
-		log.Printf("Couldn't read uid, %s", err)
-		return
-	}
-	lastID = uint32(last)
-	fmt.Printf("Last uid restored as %d\n", lastID)
 }
