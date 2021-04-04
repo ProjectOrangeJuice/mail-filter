@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/ProjectOrangeJuice/mail-filter/filter"
+	"github.com/ProjectOrangeJuice/mail-filter/mail"
 )
 
 var templates *template.Template
@@ -34,7 +35,8 @@ func Start() {
 	router.HandleFunc("/delete", deletePage)
 	router.HandleFunc("/addBlacklist", addBlacklistPage)
 	router.HandleFunc("/deleteBlacklist", deleteBlacklistPage)
-	log.Fatal(http.ListenAndServe(":8000", router))
+	router.HandleFunc("/check", check)
+	log.Fatal(http.ListenAndServe(":9090", router))
 }
 
 func indexPage(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +51,16 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 func addPage(w http.ResponseWriter, r *http.Request) {
 	h := r.FormValue("host")
 	filter.Add(h)
+	i := data{
+		filter.Hosts(),
+		filter.Blacklist(),
+	}
+	templates.ExecuteTemplate(w, "index", i)
+}
+
+func check(w http.ResponseWriter, r *http.Request) {
+
+	mail.CheckInbox()
 	i := data{
 		filter.Hosts(),
 		filter.Blacklist(),
