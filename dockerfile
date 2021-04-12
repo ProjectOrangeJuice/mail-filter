@@ -3,6 +3,7 @@ FROM golang:latest AS build
 ## image that will hold our application source
 ## files
 RUN mkdir /app
+RUN mkdir /data
 ## We copy everything in the root directory
 ## into our /app directory
 ADD ./src /app
