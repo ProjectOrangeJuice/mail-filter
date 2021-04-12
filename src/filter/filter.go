@@ -12,11 +12,12 @@ var blacklist []string
 
 func init() {
 	readSafeList()
+	readBlacklistList()
 }
 
 // Read safe domains
 func readSafeList() {
-	f, err := os.OpenFile("safe.txt", os.O_RDONLY, 0644)
+	f, err := os.OpenFile("/data/safe.txt", os.O_RDONLY, 0644)
 	if err != nil {
 		log.Printf("Failed to read domain list %s", err)
 		return
@@ -35,7 +36,7 @@ func readSafeList() {
 
 // Read blacklist domains
 func readBlacklistList() {
-	f, err := os.OpenFile("blacklist.txt", os.O_RDONLY, 0644)
+	f, err := os.OpenFile("/data/blacklist.txt", os.O_RDONLY, 0644)
 	if err != nil {
 		log.Printf("Failed to read blacklist domain list %s", err)
 		return
@@ -119,7 +120,7 @@ func RemoveBlacklist(host string) {
 }
 
 func updateFile() {
-	f, err := os.OpenFile("safe.txt", os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile("/data/safe.txt", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
 	}
@@ -130,7 +131,7 @@ func updateFile() {
 }
 
 func addToFile(from string) {
-	f, err := os.OpenFile("safe.txt",
+	f, err := os.OpenFile("/data/safe.txt",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
@@ -142,7 +143,7 @@ func addToFile(from string) {
 }
 
 func updateBlacklistFile() {
-	f, err := os.OpenFile("blacklist.txt", os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile("/data/blacklist.txt", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
 	}
@@ -153,7 +154,7 @@ func updateBlacklistFile() {
 }
 
 func addToBlacklistFile(from string) {
-	f, err := os.OpenFile("blacklist.txt",
+	f, err := os.OpenFile("/data/blacklist.txt",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)

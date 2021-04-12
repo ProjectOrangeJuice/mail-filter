@@ -6,7 +6,7 @@ import (
 )
 
 func readAddress() string {
-	dat, err := ioutil.ReadFile("address.txt")
+	dat, err := ioutil.ReadFile("/data/address.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -14,7 +14,7 @@ func readAddress() string {
 }
 
 func readPass() string {
-	dat, err := ioutil.ReadFile("addressp.txt")
+	dat, err := ioutil.ReadFile("/data/addressp.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
