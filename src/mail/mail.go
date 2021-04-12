@@ -36,17 +36,14 @@ func CheckInbox() {
 		log.Fatal(err)
 	}
 
+	// Get the last 4 messages
 	from := uint32(1)
 	to := mbox.Messages
-	if mbox.Messages > 50 { // only check the last 50 messages
-		// get last 50 messages
-		if mbox.Messages > 50 {
-			to = from + 50
-		}
+	if mbox.Messages > 50 {
+		// We're using unsigned integers here, only subtract if the result is > 0
+		from = mbox.Messages - 50
 	}
-
 	seqset := new(imap.SeqSet)
-	fmt.Printf("from %v, to %v\n", from, to)
 	seqset.AddRange(from, to)
 
 	messages := make(chan *imap.Message, 10)
@@ -56,10 +53,11 @@ func CheckInbox() {
 	}()
 	for msg := range messages {
 		// For each of the messages, take a look at the from and add it to the whitelist
+
 		for _, f := range msg.Envelope.From {
 			if filter.IsBlacklist(f.HostName) {
 				// Move to spam!
-
+				break
 			}
 			filter.Add(f.HostName)
 		}
